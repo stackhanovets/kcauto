@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 from sikuli import Screen, App, Region, Location, Pattern, Match, Button, Env
+=======
+from sikuli import Screen, App, Region, Location, Pattern, Match, Mouse, Button
+>>>>>>> staging
 import org.sikuli.script.FindFailed as FindFailed
 # alternate Region class to check instasnce type against
 # https://answers.launchpad.net/sikuli/+question/269004
@@ -253,11 +257,7 @@ class Util(object):
         if len(number_read) > 3:
             # the read number is too long; truncate anything past the 3rd digit
             number_read = number_read[:3]
-        number_read = int(number_read)
-        if number_read > 370:
-            # to account for edge cases where a digit is appended at the end
-            number_read = number_read / 10
-        return number_read
+        return int(number_read)
 
     @staticmethod
     def findAll_wrapper(region, pattern):
@@ -471,11 +471,16 @@ class Util(object):
             region (Region): sikuli Region instance containing the last known
                 location of the Kantai Collection game screen
         """
+        mouse_loc = Mouse.at()
         region.mouseDown(Button.LEFT)
         cls.kc_sleep()
         region.mouseUp(Button.LEFT)
+<<<<<<< HEAD
         loc = Env.getMouseLocation()
         cls.log_msg("Click on L({},{}).".format(loc.getX(), loc.getY()))
+=======
+        cls.log_msg("Click position {},{}.".format(mouse_loc.x, mouse_loc.y))
+>>>>>>> staging
 
     @classmethod
     def check_and_click(cls, region, target, expand=[]):
