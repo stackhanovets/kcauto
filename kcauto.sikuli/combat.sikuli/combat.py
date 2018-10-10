@@ -182,10 +182,8 @@ class CombatModule(object):
 
         if self.lbas:
             # resupply and delay sortie time if LBAS fails fatigue check
-            lbas_check_fatigue = (
+            pass_lbas_check, delay_time = self.lbas.resupply_groups(
                 'CheckFatigue' in self.config.combat['misc_options'])
-            pass_lbas_check, delay_time = (
-                self.lbas.resupply_groups(lbas_check_fatigue))
             if not pass_lbas_check:
                 self.set_next_combat_time({'minutes': delay_time})
                 return False
@@ -405,6 +403,15 @@ class CombatModule(object):
                     Util.click_preset_region(self.regions, 'center')
                     Util.rejigger_mouse(self.regions, 'lbas')
 
+<<<<<<< HEAD
+                while not self.regions["lower_right"].exists("next.png"):
+                    if self.kc_region.exists("combat_nb_fight.png"):
+                        self._select_night_battle(self._resolve_night_battle())
+
+                # battle complete; resolve combat results
+                Util.click_preset_region(self.regions, 'center')
+                self.kc_region.wait('mvp_marker.png', 30)
+=======
                 while not self.regions['lower_right'].exists('next.png', 1):
                     if self.kc_region.exists('combat_nb_fight.png', 1):
                         self._select_night_battle(self._resolve_night_battle())
@@ -414,6 +421,7 @@ class CombatModule(object):
                     self.regions['lower_right'], 'next.png',
                     Globals.EXPAND['center_off_next'])
                 self.regions['game'].wait('mvp_marker.png', 30)
+>>>>>>> staging
                 self.dmg = self.primary_fleet.check_damages(
                     self.module_regions['check_damage_combat'])
                 self.primary_fleet.print_damage_counts()
