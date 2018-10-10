@@ -138,6 +138,7 @@ class CombatModule(object):
         if self.combined_fleet:
             self.fleets[1].reset_fcf_retreat_counts()
             self.fleets[2].reset_fcf_retreat_counts()
+            self.fleets[2].flagship_damaged = False
         if self.striking_fleet:
             self.fleets[3].reset_fcf_retreat_counts()
 
@@ -181,8 +182,10 @@ class CombatModule(object):
 
         if self.lbas:
             # resupply and delay sortie time if LBAS fails fatigue check
-            pass_lbas_check, delay_time = self.lbas.resupply_groups(
+            lbas_check_fatigue = (
                 'CheckFatigue' in self.config.combat['misc_options'])
+            pass_lbas_check, delay_time = (
+                self.lbas.resupply_groups(lbas_check_fatigue))
             if not pass_lbas_check:
                 self.set_next_combat_time({'minutes': delay_time})
                 return False
@@ -396,28 +399,20 @@ class CombatModule(object):
                 if dialogue_click:
                     # click to get rid of initial boss dialogue in case it
                     # exists
-                    while not self.regions["right"].exists(
-                            "message_combat_start.png"):
-                        pass
-                    while self.regions["right"].exists(
-                            "message_combat_start.png"):
-                        pass
+                    Util.kc_sleep(5)
                     Util.click_preset_region(self.regions, 'center')
                     Util.kc_sleep()
                     Util.click_preset_region(self.regions, 'center')
                     Util.rejigger_mouse(self.regions, 'lbas')
 
-                # TODO: recovery_controller.start()
-                while not Util.region_contains(self.regions["lower_right"],
-                                               "next.png"):
-                    # TODO: recovery_controller.check()
-                    if Util.region_contains(self.kc_region,
-                                            "combat_nb_fight.png"):
+                while not self.regions['lower_right'].exists('next.png', 1):
+                    if self.kc_region.exists('combat_nb_fight.png', 1):
                         self._select_night_battle(self._resolve_night_battle())
-                # TODO: recovery_controller.finish()
 
                 # battle complete; resolve combat results
-                Util.click_preset_region(self.regions, 'center')
+                Util.check_and_click(
+                    self.regions['lower_right'], 'next.png',
+                    Globals.EXPAND['center_off_next'])
                 self.regions['game'].wait('mvp_marker.png', 30)
                 self.dmg = self.primary_fleet.check_damages(
                     self.module_regions['check_damage_combat'])
@@ -429,7 +424,9 @@ class CombatModule(object):
                         disable_combat = True
                 if self.combined_fleet:
                     self.regions['lower_right_corner'].wait('next.png', 30)
-                    Util.click_preset_region(self.regions, 'center')
+                    Util.check_and_click(
+                        self.regions['lower_right'], 'next.png',
+                        Globals.EXPAND['center_off_next'])
                     Util.kc_sleep(2)
                     self.regions['game'].wait('mvp_marker.png', 30)
                     fleet_two_damages = self.fleets[2].check_damages(
@@ -437,10 +434,9 @@ class CombatModule(object):
                     self.fleets[2].print_damage_counts()
                     self.dmg = self._combine_fleet_damages(
                         self.dmg, fleet_two_damages)
-                    # ascertain whether or not the escort fleet's flagship is
-                    # damaged if necessary
-                    if (fleet_two_damages['heavy'] == 1
-                            and not self.fleets[2].flagship_damaged):
+                    # ascertain whether or not the one heavily damaged ship is
+                    # the escort fleet's flagship
+                    if fleet_two_damages['heavy'] == 1:
                         self.fleets[2].check_damage_flagship(
                             self.module_regions)
                 Util.rejigger_mouse(self.regions, 'lbas')
@@ -450,14 +446,15 @@ class CombatModule(object):
                         or self.fast_kc_region.exists(
                             'combat_flagship_dmg.png')
                         or self.fast_kc_region.exists('combat_retreat.png')):
-                    if self.regions['lower_right_corner'].exists('next.png'):
-                        Util.click_preset_region(self.regions, 'shipgirl')
+                    if Util.check_and_click(
+                            self.regions['lower_right_corner'], 'next.png',
+                            Globals.EXPAND['shipgirl_off_next']):
                         Util.rejigger_mouse(self.regions, 'top')
                         if 'ClearStop' in self.config.combat['misc_options']:
                             post_combat_screens.append('next')
-                    elif self.regions['lower_right_corner'].exists(
-                            'next_alt.png'):
-                        Util.click_preset_region(self.regions, 'shipgirl')
+                    elif Util.check_and_click(
+                            self.regions['lower_right_corner'], 'next_alt.png',
+                            Globals.EXPAND['shipgirl_off_next']):
                         Util.rejigger_mouse(self.regions, 'top')
                         if 'ClearStop' in self.config.combat['misc_options']:
                             post_combat_screens.append('next_alt')
@@ -465,9 +462,9 @@ class CombatModule(object):
                         # if the 'next' asset exists in this region during an
                         # event map sortie, the map is cleared. This 'next' is
                         # for the screen indicating the opening of EOs.
-                        if self.module_regions['event_next'].exists(
-                                'next.png'):
-                            Util.click_preset_region(self.regions, 'shipgirl')
+                        if Util.check_and_click(
+                                self.module_regions['event_next'], 'next.png',
+                                Globals.EXPAND['shipgirl_off_next']):
                             Util.rejigger_mouse(self.regions, 'top')
                             if ('ClearStop' in self.config.combat[
                                     'misc_options']):
@@ -486,7 +483,9 @@ class CombatModule(object):
                     'combat_flagship_dmg.png'):
                 # flagship retreat; sortie complete
                 Util.log_msg("Flagship damaged. Automatic retreat.")
-                Util.click_preset_region(self.regions, 'shipgirl')
+                Util.check_and_click(
+                    self.regions['lower_right'], 'combat_flagship_dmg.png',
+                    Globals.EXPAND['shipgirl_off_next'])
                 self.regions['left'].wait('home_menu_sortie.png', 30)
                 self._print_sortie_complete_msg(self.nodes_run)
                 sortieing = False
@@ -495,12 +494,13 @@ class CombatModule(object):
             if self.regions['lower_right_corner'].exists('next_alt.png'):
                 # resource node end; sortie complete
                 while not self.regions['left'].exists('home_menu_sortie.png'):
-                    if self.regions['lower_right_corner'].exists('next.png'):
-                        Util.click_preset_region(self.regions, 'shipgirl')
+                    if Util.check_and_click(
+                            self.regions['lower_right_corner'], 'next.png',
+                            Globals.EXPAND['shipgirl_off_next']):
                         Util.rejigger_mouse(self.regions, 'top')
-                    elif self.regions['lower_right_corner'].exists(
-                            'next_alt.png'):
-                        Util.click_preset_region(self.regions, 'shipgirl')
+                    elif Util.check_and_click(
+                            self.regions['lower_right_corner'], 'next_alt.png',
+                            Globals.EXPAND['shipgirl_off_next']):
                         Util.rejigger_mouse(self.regions, 'top')
                 self._print_sortie_complete_msg(self.nodes_run)
                 sortieing = False
@@ -846,15 +846,15 @@ class CombatModule(object):
                 self.config.combat['retreat_limit'], self.dmg))
         if threshold_dmg_count > 0:
             continue_override = False
-            # if self.combined_fleet and threshold_dmg_count == 1:
-            #     # if there is only one heavily damaged ship and it is
-            #     # the flagship of the escort fleet, do not retreat
-            #     if (self.fleets[2].damage_counts['heavy'] == 1
-            #             and self.fleets[2].flagship_damaged):
-            #         continue_override = True
-            #         Util.log_msg(
-            #             "The 1 ship damaged beyond threshold is the escort "
-            #             "fleet's flagship (unsinkable). Continuing sortie.")
+            if self.combined_fleet and threshold_dmg_count == 1:
+                # if there is only one heavily damaged ship and it is
+                # the flagship of the escort fleet, do not retreat
+                if (self.fleets[2].damage_counts['heavy'] == 1
+                        and self.fleets[2].flagship_damaged):
+                    continue_override = True
+                    Util.log_msg(
+                        "The one heavily damaged ship is the escort fleet's "
+                        "flagship, which is unsinkable. Continuing sortie.")
             if not continue_override:
                 Util.log_warning(
                     "{} ship(s) damaged above threshold. Retreating.".format(
@@ -909,6 +909,7 @@ class CombatModule(object):
             continue_sortie (bool): True if the the sortie continue button
             should be pressed, False otherwise
         """
+        Util.kc_sleep()
         if continue_sortie:
             Util.log_msg("Continuing sortie.")
             Util.check_and_click(self.kc_region, 'combat_continue.png')
@@ -1165,6 +1166,7 @@ class CombatFleet(Fleet):
         if (regions['check_damage_flagship'].exists(Pattern(
                 'ship_state_dmg_heavy.png').similar(
                     Globals.DAMAGE_SIMILARITY))):
+            Util.log_warning("Flagship of escort fleet is heavily damaged.")
             self.flagship_damaged = True
         else:
             self.flagship_damaged = False
