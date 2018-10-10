@@ -396,19 +396,29 @@ class CombatModule(object):
                 if dialogue_click:
                     # click to get rid of initial boss dialogue in case it
                     # exists
-                    Util.kc_sleep(5)
+                    while not self.regions["right"].exists(
+                            "message_combat_start.png"):
+                        pass
+                    while self.regions["right"].exists(
+                            "message_combat_start.png"):
+                        pass
                     Util.click_preset_region(self.regions, 'center')
                     Util.kc_sleep()
                     Util.click_preset_region(self.regions, 'center')
                     Util.rejigger_mouse(self.regions, 'lbas')
 
-                while not self.regions["lower_right"].exists("next.png"):
-                    if self.kc_region.exists("combat_nb_fight.png"):
+                # TODO: recovery_controller.start()
+                while not Util.region_contains(self.regions["lower_right"],
+                                               "next.png"):
+                    # TODO: recovery_controller.check()
+                    if Util.region_contains(self.kc_region,
+                                            "combat_nb_fight.png"):
                         self._select_night_battle(self._resolve_night_battle())
+                # TODO: recovery_controller.finish()
 
                 # battle complete; resolve combat results
                 Util.click_preset_region(self.regions, 'center')
-                self.kc_region.wait('mvp_marker.png', 30)
+                self.regions['game'].wait('mvp_marker.png', 30)
                 self.dmg = self.primary_fleet.check_damages(
                     self.module_regions['check_damage_combat'])
                 self.primary_fleet.print_damage_counts()
@@ -836,15 +846,15 @@ class CombatModule(object):
                 self.config.combat['retreat_limit'], self.dmg))
         if threshold_dmg_count > 0:
             continue_override = False
-            if self.combined_fleet and threshold_dmg_count == 1:
-                # if there is only one heavily damaged ship and it is
-                # the flagship of the escort fleet, do not retreat
-                if (self.fleets[2].damage_counts['heavy'] == 1
-                        and self.fleets[2].flagship_damaged):
-                    continue_override = True
-                    Util.log_msg(
-                        "The 1 ship damaged beyond threshold is the escort "
-                        "fleet's flagship (unsinkable). Continuing sortie.")
+            # if self.combined_fleet and threshold_dmg_count == 1:
+            #     # if there is only one heavily damaged ship and it is
+            #     # the flagship of the escort fleet, do not retreat
+            #     if (self.fleets[2].damage_counts['heavy'] == 1
+            #             and self.fleets[2].flagship_damaged):
+            #         continue_override = True
+            #         Util.log_msg(
+            #             "The 1 ship damaged beyond threshold is the escort "
+            #             "fleet's flagship (unsinkable). Continuing sortie.")
             if not continue_override:
                 Util.log_warning(
                     "{} ship(s) damaged above threshold. Retreating.".format(
